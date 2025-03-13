@@ -1,10 +1,9 @@
 // PDF.js Worker Dosyası Tanımlama
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-// HTML'deki Elemanları Seç
+// HTML Elemanlarını Seç
 const fileInput = document.getElementById('fileInput');
 const convertToWord = document.getElementById('convertToWord');
-const convertToExcel = document.getElementById('convertToExcel');
 const previewContent = document.getElementById('previewContent');
 const fileNameDisplay = document.getElementById('fileName');
 
@@ -13,7 +12,6 @@ let pdfText = [];
 
 fileInput.addEventListener('change', handleFileSelect);
 convertToWord.addEventListener('click', createWordDocument);
-convertToExcel.addEventListener('click', createExcelDocument);
 
 // 📌 PDF Dosyası Seçildiğinde Çalışan Fonksiyon
 function handleFileSelect(e) {
@@ -59,36 +57,59 @@ function parsePDF() {
     fileReader.readAsArrayBuffer(selectedFile);
 }
 
-// 📌 PDF'yi Word'e Dönüştürme
+// 📌 PDF'yi Word'e Dönüştürme (DÜZELTİLMİŞ VERSİYON)
 function createWordDocument() {
     if (!selectedFile) return alert("Önce bir PDF yükleyin!");
 
-    const zip = new JSZip();
-    let docXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>';
+    const docxContent =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+        '<w:body>';
 
+    let paragraphs = "";
     pdfText.forEach(text => {
-        docXml += `<w:p><w:r><w:t>${text}</w:t></w:r></w:p>`;
+        const safeText = text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+
+        paragraphs += `<w:p><w:r><w:t>${safeText}</w:t></w:r></w:p>`;
     });
 
-    docXml += '</w:body></w:document>';
-    zip.file("word/document.xml", docXml);
+    const finalDocx = docxContent + paragraphs + '</w:body></w:document>';
 
-    zip.generateAsync({type: 'blob'}).then(content => {
-        saveAs(content, selectedFile.name.replace('.pdf', '.docx'));
+    // ZIP Paketi oluştur (DOCX formatı için gerekli)
+    const zip = new JSZip();
+
+    // DOCX için gerekli dosyaları ekleyelim
+    zip.file("[Content_Types].xml", `
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+            <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+            <Default Extension="xml" ContentType="application/xml"/>
+            <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+        </Types>
+    `);
+
+    zip.file("word/document.xml", finalDocx);
+    
+    zip.file("_rels/.rels", `
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+            <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+        </Relationships>
+    `);
+
+    zip.file("word/_rels/document.xml.rels", `
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        </Relationships>
+    `);
+
+    // DOCX dosyasını oluştur ve indir
+    zip.generateAsync({ type: "blob" }).then(content => {
+        saveAs(content, selectedFile.name.replace(".pdf", ".docx"));
     });
-}
-
-// 📌 PDF'yi Excel'e Dönüştürme
-function createExcelDocument() {
-    if (!selectedFile) return alert("Önce bir PDF yükleyin!");
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(pdfText.map(text => [text]));
-
-    XLSX.utils.book_append_sheet(wb, ws, "Sayfa1");
-    const excelBuffer = XLSX.write(wb, {bookType: 'xlsx', type: 'array'});
-    const blob = new Blob([excelBuffer], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-
-    saveAs(blob, selectedFile.name.replace('.pdf', '.xlsx'));
 }
