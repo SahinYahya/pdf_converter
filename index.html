@@ -4,13 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Dönüştürücü</title>
+    
+    <!-- Kütüphaneler -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <!-- Stil Dosyası -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>PDF Dönüştürücü - Güncellendi!</h1>
-    <input type="file" id="fileInput" accept=".pdf">
-    <button id="convertToWord">PDF → Word</button>
-    <button id="convertToExcel">PDF → Excel</button>
+
+    <div class="container">
+        <h1>PDF Dönüştürücü</h1>
+
+        <div class="upload-container">
+            <input type="file" id="fileInput" accept=".pdf">
+            <label for="fileInput">PDF Seç</label>
+        </div>
+
+        <div id="fileInfo">
+            <p><strong>Dosya Adı:</strong> <span id="fileName">Seçilmedi</span></p>
+        </div>
+
+        <button id="convertToWord">PDF → Word</button>
+        <button id="convertToExcel">PDF → Excel</button>
+        <button id="convertToImage">PDF → Görsel (PNG)</button>
+
+        <div id="previewContainer">
+            <h3>Önizleme:</h3>
+            <canvas id="pdfCanvas"></canvas>
+            <div id="previewContent"></div>
+        </div>
+    </div>
+
+    <!-- JavaScript Dosyası -->
     <script src="script.js"></script>
+
 </body>
 </html>
